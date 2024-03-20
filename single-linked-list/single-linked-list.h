@@ -1,3 +1,4 @@
+#include <cassert>
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -88,6 +89,7 @@ class SingleLinkedList {
         // Возвращает ссылку на самого себя
         // Инкремент итератора, не указывающего на существующий элемент списка, приводит к неопределённому поведению
         BasicIterator& operator++() noexcept {
+            assert(node_ != nullptr);
             node_ = node_->next_node;
             return *this;
         }
@@ -106,6 +108,7 @@ class SingleLinkedList {
         // Вызов этого оператора у итератора, не указывающего на существующий элемент списка,
         // приводит к неопределённому поведению
         [[nodiscard]] reference operator*() const noexcept {
+            assert(node_ != nullptr);
             return node_->value;
         }
 
@@ -113,6 +116,7 @@ class SingleLinkedList {
         // Вызов этого оператора у итератора, не указывающего на существующий элемент списка,
         // приводит к неопределённому поведению
         [[nodiscard]] pointer operator->() const noexcept {
+            assert(node_ != nullptr);
             return &node_->value;
         }
 
@@ -193,13 +197,16 @@ public:
      * Если при создании элемента будет выброшено исключение, список останется в прежнем состоянии
      */
     Iterator InsertAfter(ConstIterator pos, const Type& value) {
+        assert(pos.node_ != nullptr);
         pos.node_->next_node = new Node(value, pos.node_->next_node);
         ++size_;
         return Iterator{ pos.node_->next_node };
     }
 
     void PopFront() noexcept {
-        EraseAfter(before_begin());
+        if (size_ > 0) {
+            EraseAfter(before_begin());
+        }
     }
 
     /*
@@ -207,6 +214,7 @@ public:
      * Возвращает итератор на элемент, следующий за удалённым
      */
     Iterator EraseAfter(ConstIterator pos) noexcept {
+        assert(pos.node_ != nullptr);
         Node* del_node = pos.node_->next_node;
         pos.node_->next_node = del_node->next_node;
         delete del_node;
@@ -217,17 +225,15 @@ public:
     template <typename Iterator>
     void SwapList(Iterator begin, Iterator end) {
         SingleLinkedList tmp;
-        SingleLinkedList tmp2;
-        for (auto itr = begin; itr != end; ++itr) {
-            tmp.PushFront(*itr);
+        for (auto itr = tmp.before_begin(); begin != end; ++begin) {
+            itr = tmp.InsertAfter(itr, *begin);
         }
-        for (auto itr = tmp.begin(); itr != tmp.end(); ++itr) {
-            tmp2.PushFront(*itr);
-        }
-        swap(tmp2);
+        swap(tmp);
     }
 
     SingleLinkedList() {}
+
+
 
     SingleLinkedList(std::initializer_list<Type> values) {
         assert(size_ == 0 && head_.next_node == nullptr);
@@ -320,4 +326,3 @@ template <typename Type>
 bool operator>=(const SingleLinkedList<Type>& lhs, const SingleLinkedList<Type>& rhs) {
     return !(lhs < rhs);
 }
-
